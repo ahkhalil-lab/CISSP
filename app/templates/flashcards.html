@@ -1,0 +1,24 @@
+{% extends 'layout.html' %}
+{% block content %}
+<h2>Flashcard</h2>
+<div class="card">
+    <div class="card-body">
+        <p><strong>Domain:</strong> {{ question['domain'] }}</p>
+        <p>{{ question['question'] }}</p>
+        <details>
+            <summary>Show Answer</summary>
+            <ul>
+                <li>A. {{ question['option_a'] }}</li>
+                <li>B. {{ question['option_b'] }}</li>
+                <li>C. {{ question['option_c'] }}</li>
+                <li>D. {{ question['option_d'] }}</li>
+            </ul>
+            <p>Correct: {{ question['correct_option'] }}</p>
+            {% if question['explanation'] %}
+            <p>{{ question['explanation'] }}</p>
+            {% endif %}
+        </details>
+    </div>
+</div>
+<a class="btn btn-primary mt-3" href="{{ url_for('flashcards') }}">Next</a>
+{% endblock %}

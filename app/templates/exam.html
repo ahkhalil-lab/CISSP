@@ -1,0 +1,11 @@
+{% extends 'layout.html' %}
+{% block content %}
+<h2>Start Exam</h2>
+<form method="post">
+    <div class="mb-3">
+        <label for="num_questions" class="form-label">Number of Questions</label>
+        <input type="number" class="form-control" id="num_questions" name="num_questions" value="10" min="1">
+    </div>
+    <button type="submit" class="btn btn-primary">Begin</button>
+</form>
+{% endblock %}
