@@ -1,0 +1,25 @@
+{% extends 'layout.html' %}
+{% block content %}
+<h2>Questions</h2>
+<table class="table table-striped">
+    <thead>
+        <tr><th>ID</th><th>Domain</th><th>Question</th><th></th></tr>
+    </thead>
+    <tbody>
+    {% for q in questions %}
+        <tr>
+            <td>{{ q['id'] }}</td>
+            <td>{{ q['domain'] }}</td>
+            <td>{{ q['question']|truncate(80) }}</td>
+            <td>
+                <a class="btn btn-sm btn-secondary" href="{{ url_for('question_form', question_id=q['id']) }}">Edit</a>
+                <form method="post" action="{{ url_for('delete_question', question_id=q['id']) }}" style="display:inline-block" onsubmit="return confirm('Delete this question?');">
+                    <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+                </form>
+            </td>
+        </tr>
+    {% endfor %}
+    </tbody>
+</table>
+<a class="btn btn-primary" href="{{ url_for('question_form') }}">Add Question</a>
+{% endblock %}

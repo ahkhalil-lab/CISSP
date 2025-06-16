@@ -6,7 +6,7 @@ This project provides a small Flask web application to help you practice for the
 
 - Random flashcards for quick review
 - Create mock exams with scoring
-- Add or edit questions
+- Add, edit, or delete questions
 - Track exam results over time
 
 ## Setup
@@ -30,6 +30,9 @@ This project provides a small Flask web application to help you practice for the
    python app/app.py
    ```
 6. Open your browser to `http://localhost:5000`.
+
+Once running, use the **Questions** link in the navigation bar to view all questions.
+From there you can edit or delete entries.
 
 ## Question JSON Format
 

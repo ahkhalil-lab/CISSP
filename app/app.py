@@ -88,6 +88,25 @@ def progress():
     return render_template('progress.html', results=results)
 
 
+@app.route('/questions')
+def question_list():
+    """Display all questions for editing or deletion."""
+    conn = get_db_connection()
+    cur = conn.execute('SELECT id, domain, question FROM questions ORDER BY id ASC')
+    questions = cur.fetchall()
+    conn.close()
+    return render_template('question_list.html', questions=questions)
+
+
+@app.route('/question/delete/<int:question_id>', methods=['POST'])
+def delete_question(question_id):
+    conn = get_db_connection()
+    conn.execute('DELETE FROM questions WHERE id=?', (question_id,))
+    conn.commit()
+    conn.close()
+    return redirect(url_for('question_list'))
+
+
 @app.route('/question/new', methods=['GET', 'POST'])
 @app.route('/question/<int:question_id>', methods=['GET', 'POST'])
 def question_form(question_id=None):
