@@ -1,0 +1,12 @@
+[
+    {
+        "domain": "Security and Risk Management",
+        "question": "What is the primary purpose of a security policy?",
+        "option_a": "To define technical controls",
+        "option_b": "To outline management's intent",
+        "option_c": "To implement physical security",
+        "option_d": "To configure firewalls",
+        "correct_option": "B",
+        "explanation": "A security policy is a high-level statement of management's intent and goals."
+    }
+]
