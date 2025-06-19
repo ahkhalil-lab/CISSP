@@ -31,51 +31,98 @@ def flashcards():
 
 @app.route('/exam', methods=['GET', 'POST'])
 def exam():
+
+    conn = get_db_connection()
+    cur = conn.execute('SELECT DISTINCT domain FROM questions ORDER BY domain')
+    domains = [row['domain'] for row in cur.fetchall()]
     if request.method == 'POST':
         num_q = int(request.form.get('num_questions', 10))
-        conn = get_db_connection()
-        cur = conn.execute('SELECT * FROM questions ORDER BY RANDOM() LIMIT ?', (num_q,))
-        questions = cur.fetchall()
+        selected_domains = request.form.getlist('domains') or domains
+        placeholders = ','.join('?' for _ in selected_domains)
+        query = f'SELECT id FROM questions WHERE domain IN ({placeholders}) ORDER BY RANDOM() LIMIT ?'
+        cur = conn.execute(query, (*selected_domains, num_q))
+        question_ids = [row['id'] for row in cur.fetchall()]
         conn.close()
-        session['questions'] = [dict(q) for q in questions]
+        session['question_ids'] = question_ids
         session['current'] = 0
         session['score'] = 0
         return redirect(url_for('take_exam'))
-    return render_template('exam.html')
+    conn.close()
+    return render_template('exam.html', domains=domains)
 
 
-@app.route('/take_exam', methods=['GET', 'POST'])
+@app.route('/take_exam')
 def take_exam():
-    questions = session.get('questions')
+    question_ids = session.get('question_ids')
+    current = session.get('current', 0)
+
+    if not question_ids or current >= len(question_ids):
+        return redirect(url_for('exam'))
+
+    conn = get_db_connection()
+    qid = question_ids[current]
+    question = conn.execute('SELECT * FROM questions WHERE id=?', (qid,)).fetchone()
+    conn.close()
+    return render_template('take_exam.html', question=question, current=current+1, total=len(question_ids))
+
+
+@app.route('/answer_question', methods=['POST'])
+def answer_question():
+    question_ids = session.get('question_ids')
     current = session.get('current', 0)
     score = session.get('score', 0)
 
-    if questions is None:
+    if not question_ids or current >= len(question_ids):
         return redirect(url_for('exam'))
 
-    if request.method == 'POST':
-        selected = request.form.get('answer')
-        if selected == questions[current]['correct_option']:
-            score += 1
-        session['score'] = score
-        current += 1
-        session['current'] = current
-        if current >= len(questions):
-            conn = get_db_connection()
-            conn.execute('INSERT INTO results (date, score, total) VALUES (?, ?, ?)',
-                         (datetime.utcnow(), score, len(questions)))
-            conn.commit()
-            conn.close()
-            return redirect(url_for('exam_result'))
+    selected = request.form.get('answer')
+    conn = get_db_connection()
+    qid = question_ids[current]
+    question = conn.execute('SELECT * FROM questions WHERE id=?', (qid,)).fetchone()
+    correct = selected == question['correct_option']
+    if correct:
+        score += 1
+    session['score'] = score
+    session['current'] = current + 1
+    session['last_question_id'] = qid
+    session['last_selected'] = selected
 
-    question = questions[current]
-    return render_template('take_exam.html', question=question, current=current+1, total=len(questions))
+    done = session['current'] >= len(question_ids)
+    if done:
+        conn.execute('INSERT INTO results (date, score, total) VALUES (?, ?, ?)',
+                     (datetime.utcnow(), score, len(question_ids)))
+        conn.commit()
+    conn.close()
+
+    return redirect(url_for('review_question'))
+
+
+@app.route('/review_question')
+def review_question():
+    qid = session.get('last_question_id')
+    selected = session.get('last_selected')
+    question_ids = session.get('question_ids')
+    current = session.get('current', 0)
+
+    if qid is None or question_ids is None:
+        return redirect(url_for('exam'))
+
+    conn = get_db_connection()
+    question = conn.execute('SELECT * FROM questions WHERE id=?', (qid,)).fetchone()
+    conn.close()
+    correct = selected == question['correct_option']
+    done = current >= len(question_ids)
+    next_url = url_for('exam_result') if done else url_for('take_exam')
+    return render_template('review_question.html', question=question, selected=selected,
+                           correct=correct, next_url=next_url,
+                           current=current, total=len(question_ids))
+
 
 
 @app.route('/exam_result')
 def exam_result():
     score = session.get('score', 0)
-    total = len(session.get('questions', []))
+    total = len(session.get('question_ids', []))
     return render_template('exam_result.html', score=score, total=total)
 
 
@@ -87,6 +134,25 @@ def progress():
     conn.close()
     return render_template('progress.html', results=results)
 
+
+
+@app.route('/questions')
+def question_list():
+    """Display all questions for editing or deletion."""
+    conn = get_db_connection()
+    cur = conn.execute('SELECT id, domain, question FROM questions ORDER BY id ASC')
+    questions = cur.fetchall()
+    conn.close()
+    return render_template('question_list.html', questions=questions)
+
+
+@app.route('/question/delete/<int:question_id>', methods=['POST'])
+def delete_question(question_id):
+    conn = get_db_connection()
+    conn.execute('DELETE FROM questions WHERE id=?', (question_id,))
+    conn.commit()
+    conn.close()
+    return redirect(url_for('question_list'))
 
 @app.route('/question/new', methods=['GET', 'POST'])
 @app.route('/question/<int:question_id>', methods=['GET', 'POST'])
