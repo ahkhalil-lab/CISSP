@@ -1,17 +1,13 @@
 # CISSP Study Web App
 
-
 This project provides a small Flask web application to help you practice for the CISSP exam. It supports flashcards, mock exams with per-question feedback, question management, and progress tracking. Questions are stored in an SQLite database so it can run locally without extra services.
-
 
 ## Features
 
 - Random flashcards for quick review
-
 - Create mock exams with scoring and explanations after each answer
 - Choose which security domains to include when starting an exam
 - Add, edit, or delete questions
-
 - Track exam results over time
 
 ## Setup
@@ -36,10 +32,9 @@ This project provides a small Flask web application to help you practice for the
    ```
 6. Open your browser to `http://localhost:5000`.
 
-
 Once running, use the **Questions** link in the navigation bar to view all questions.
 From there you can edit or delete entries.
-During an exam you select how many questions to attempt and which domains to draw from. After each answer you will immediately see whether you were correct along with the explanation before moving on.
+During an exam you select how many questions to attempt and which domains to draw from. The application now compresses the question list so you can practice hundreds of questions in one sitting. After each answer you will immediately see whether you were correct along with the explanation before moving on.
 
 ## Question JSON Format
 

@@ -2,6 +2,9 @@ from flask import Flask, render_template, request, redirect, url_for, session
 import sqlite3
 from datetime import datetime
 import os
+import json
+import zlib
+import base64
 
 app = Flask(__name__)
 app.secret_key = "cissp-secret-key"
@@ -13,6 +16,25 @@ def get_db_connection():
     conn = sqlite3.connect(DATABASE)
     conn.row_factory = sqlite3.Row
     return conn
+
+
+def store_question_ids(question_ids):
+    """Compress and store the question ID list in the session."""
+    raw = json.dumps(question_ids).encode()
+    blob = base64.b64encode(zlib.compress(raw)).decode()
+    session['question_blob'] = blob
+
+
+def load_question_ids():
+    """Load and decompress the question ID list from the session."""
+    blob = session.get('question_blob')
+    if not blob:
+        return None
+    try:
+        raw = zlib.decompress(base64.b64decode(blob))
+        return json.loads(raw.decode())
+    except Exception:
+        return None
 
 
 @app.route('/')
@@ -31,7 +53,6 @@ def flashcards():
 
 @app.route('/exam', methods=['GET', 'POST'])
 def exam():
-
     conn = get_db_connection()
     cur = conn.execute('SELECT DISTINCT domain FROM questions ORDER BY domain')
     domains = [row['domain'] for row in cur.fetchall()]
@@ -43,7 +64,8 @@ def exam():
         cur = conn.execute(query, (*selected_domains, num_q))
         question_ids = [row['id'] for row in cur.fetchall()]
         conn.close()
-        session['question_ids'] = question_ids
+        session.pop('question_blob', None)
+        store_question_ids(question_ids)
         session['current'] = 0
         session['score'] = 0
         return redirect(url_for('take_exam'))
@@ -53,7 +75,7 @@ def exam():
 
 @app.route('/take_exam')
 def take_exam():
-    question_ids = session.get('question_ids')
+    question_ids = load_question_ids()
     current = session.get('current', 0)
 
     if not question_ids or current >= len(question_ids):
@@ -68,7 +90,7 @@ def take_exam():
 
 @app.route('/answer_question', methods=['POST'])
 def answer_question():
-    question_ids = session.get('question_ids')
+    question_ids = load_question_ids()
     current = session.get('current', 0)
     score = session.get('score', 0)
 
@@ -101,7 +123,7 @@ def answer_question():
 def review_question():
     qid = session.get('last_question_id')
     selected = session.get('last_selected')
-    question_ids = session.get('question_ids')
+    question_ids = load_question_ids()
     current = session.get('current', 0)
 
     if qid is None or question_ids is None:
@@ -118,11 +140,12 @@ def review_question():
                            current=current, total=len(question_ids))
 
 
-
 @app.route('/exam_result')
 def exam_result():
     score = session.get('score', 0)
-    total = len(session.get('question_ids', []))
+    question_ids = load_question_ids() or []
+    session.pop('question_blob', None)
+    total = len(question_ids)
     return render_template('exam_result.html', score=score, total=total)
 
 
@@ -133,8 +156,6 @@ def progress():
     results = cur.fetchall()
     conn.close()
     return render_template('progress.html', results=results)
-
-
 
 @app.route('/questions')
 def question_list():
