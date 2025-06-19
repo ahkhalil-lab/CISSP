@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, session
+from flask import Flask, render_template, request, redirect, url_for, session, flash
 import sqlite3
 from datetime import datetime
 import os
@@ -60,6 +60,18 @@ def exam():
         num_q = int(request.form.get('num_questions', 10))
         selected_domains = request.form.getlist('domains') or domains
         placeholders = ','.join('?' for _ in selected_domains)
+
+        count_query = f'SELECT COUNT(*) FROM questions WHERE domain IN ({placeholders})'
+        available = conn.execute(count_query, selected_domains).fetchone()[0]
+
+        if available == 0:
+            conn.close()
+            flash('No questions found for the selected domains.')
+            return redirect(url_for('exam'))
+
+        if num_q > available:
+            flash(f'Only {available} questions available; starting exam with {available}.')
+            num_q = available
         query = f'SELECT id FROM questions WHERE domain IN ({placeholders}) ORDER BY RANDOM() LIMIT ?'
         cur = conn.execute(query, (*selected_domains, num_q))
         question_ids = [row['id'] for row in cur.fetchall()]
@@ -79,6 +91,7 @@ def take_exam():
     current = session.get('current', 0)
 
     if not question_ids or current >= len(question_ids):
+        flash('No active exam. Please start again.')
         return redirect(url_for('exam'))
 
     conn = get_db_connection()
