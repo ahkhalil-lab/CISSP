@@ -31,6 +31,7 @@ def flashcards():
 
 @app.route('/exam', methods=['GET', 'POST'])
 def exam():
+
     conn = get_db_connection()
     cur = conn.execute('SELECT DISTINCT domain FROM questions ORDER BY domain')
     domains = [row['domain'] for row in cur.fetchall()]
@@ -117,6 +118,7 @@ def review_question():
                            current=current, total=len(question_ids))
 
 
+
 @app.route('/exam_result')
 def exam_result():
     score = session.get('score', 0)
@@ -131,6 +133,7 @@ def progress():
     results = cur.fetchall()
     conn.close()
     return render_template('progress.html', results=results)
+
 
 
 @app.route('/questions')
@@ -150,7 +153,6 @@ def delete_question(question_id):
     conn.commit()
     conn.close()
     return redirect(url_for('question_list'))
-
 
 @app.route('/question/new', methods=['GET', 'POST'])
 @app.route('/question/<int:question_id>', methods=['GET', 'POST'])

@@ -6,6 +6,7 @@
         <label for="num_questions" class="form-label">Number of Questions</label>
         <input type="number" class="form-control" id="num_questions" name="num_questions" value="10" min="1">
     </div>
+
     <div class="mb-3">
         <label class="form-label">Domains to Include</label>
         {% for d in domains %}
@@ -15,6 +16,7 @@
         </div>
         {% endfor %}
     </div>
+
     <button type="submit" class="btn btn-primary">Begin</button>
 </form>
 {% endblock %}
