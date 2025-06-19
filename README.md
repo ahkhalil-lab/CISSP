@@ -9,7 +9,7 @@ This project provides a small Flask web application to help you practice for the
 - Random flashcards for quick review
 
 - Create mock exams with scoring and explanations after each answer
-- Choose which security domains to include when starting an exam
+During an exam you select how many questions to attempt and which domains to draw from. The application now compresses the question list so you can practice hundreds of questions in one sitting. After each answer you will immediately see whether you were correct along with the explanation before moving on.
 - Add, edit, or delete questions
 
 - Track exam results over time

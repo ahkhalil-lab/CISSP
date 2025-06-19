@@ -2,6 +2,9 @@ from flask import Flask, render_template, request, redirect, url_for, session
 import sqlite3
 from datetime import datetime
 import os
+import json
+import zlib
+import base64
 
 app = Flask(__name__)
 app.secret_key = "cissp-secret-key"
@@ -13,6 +16,25 @@ def get_db_connection():
     conn = sqlite3.connect(DATABASE)
     conn.row_factory = sqlite3.Row
     return conn
+
+
+def store_question_ids(question_ids):
+    """Compress and store the question ID list in the session."""
+    raw = json.dumps(question_ids).encode()
+    blob = base64.b64encode(zlib.compress(raw)).decode()
+    session['question_blob'] = blob
+
+
+def load_question_ids():
+    """Load and decompress the question ID list from the session."""
+    blob = session.get('question_blob')
+    if not blob:
+        return None
+    try:
+        raw = zlib.decompress(base64.b64decode(blob))
+        return json.loads(raw.decode())
+    except Exception:
+        return None
 
 
 @app.route('/')
@@ -31,11 +53,14 @@ def flashcards():
 
 @app.route('/exam', methods=['GET', 'POST'])
 def exam():
-
-    conn = get_db_connection()
-    cur = conn.execute('SELECT DISTINCT domain FROM questions ORDER BY domain')
-    domains = [row['domain'] for row in cur.fetchall()]
-    if request.method == 'POST':
+        session.pop('question_blob', None)
+        store_question_ids(question_ids)
+    question_ids = load_question_ids()
+    question_ids = load_question_ids()
+    question_ids = load_question_ids()
+    question_ids = load_question_ids() or []
+    session.pop('question_blob', None)
+    total = len(question_ids)
         num_q = int(request.form.get('num_questions', 10))
         selected_domains = request.form.getlist('domains') or domains
         placeholders = ','.join('?' for _ in selected_domains)
