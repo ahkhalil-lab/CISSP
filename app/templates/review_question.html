@@ -1,0 +1,20 @@
+{% extends 'layout.html' %}
+{% block content %}
+<h2>Question {{ current }} of {{ total }}</h2>
+<p><strong>Domain:</strong> {{ question['domain'] }}</p>
+<p>{{ question['question'] }}</p>
+<ul>
+    <li>A. {{ question['option_a'] }}</li>
+    <li>B. {{ question['option_b'] }}</li>
+    <li>C. {{ question['option_c'] }}</li>
+    <li>D. {{ question['option_d'] }}</li>
+</ul>
+<p class="mt-2 fw-bold">
+{% if correct %}Correct!{% else %}Wrong.{% endif %}
+Selected: {{ selected }} &mdash; Correct: {{ question['correct_option'] }}
+</p>
+{% if question['explanation'] %}
+<p>{{ question['explanation'] }}</p>
+{% endif %}
+<a class="btn btn-primary" href="{{ next_url }}">Next</a>
+{% endblock %}
