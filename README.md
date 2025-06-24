@@ -23,19 +23,22 @@ This project provides a small Flask web application to help you practice for the
    ```bash
    python app/initialize_db.py
    ```
-4. Create a `.env` file and set your OpenAI API key:
+4. Create a `.env` file and set your OpenAI API key (and optional model name):
    ```bash
    cp .env.example .env
-   # edit .env to add your key
+   # edit .env to add your key and optionally change OPENAI_MODEL
    ```
 5. (Optional) Import your questions from a JSON file:
    ```bash
    python app/import_questions.py questions.json
    ```
    A template file `questions.json.template` is included to show the expected format.
-6. Run the application:
+6. Run the application (you can specify a different model with `--model`):
    ```bash
+   # default model comes from OPENAI_MODEL or gpt-4o
    python app/app.py
+   # or override
+   python app/app.py --model gpt-3.5-turbo
    ```
 7. Open your browser to `http://localhost:5000`.
 
@@ -62,10 +65,12 @@ Each question should include a domain, text, four answer options, the correct op
 ]
 ```
 
+The `correct_option` should normally be the letter `A`, `B`, `C`, or `D`, but values like `option_a` are also recognized.
+
 ## Notes
 
 This project is intended for personal study use. If you share questions or other content, ensure that you have the rights to do so.
+
 ## AI Question Generation
 
-If you provide an OpenAI API key in `.env`, the **AI Exam** page lets you enter a prompt and automatically generate a short practice exam using ChatGPT. Questions are kept in memory and scored like regular exams.
-
+If you provide an OpenAI API key in `.env`, the **AI Exam** page lets you enter a prompt and automatically generate a short practice exam using ChatGPT. Questions are kept in memory and scored like regular exams. The model defaults to `gpt-4o` but can be changed via the `OPENAI_MODEL` variable or the `--model` option.
