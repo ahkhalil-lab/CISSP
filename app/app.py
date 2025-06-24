@@ -5,6 +5,11 @@ import os
 import json
 import zlib
 import base64
+from dotenv import load_dotenv
+import openai
+
+load_dotenv()
+openai.api_key = os.getenv('OPENAI_API_KEY')
 
 app = Flask(__name__)
 app.secret_key = "cissp-secret-key"
@@ -30,6 +35,30 @@ def load_question_ids():
     blob = session.get('question_blob')
     if not blob:
         return None
+
+
+def generate_ai_questions(prompt, count):
+    """Call ChatGPT to generate a list of question dictionaries."""
+    if not openai.api_key:
+        raise RuntimeError('OpenAI API key not configured')
+    messages = [
+        {
+            'role': 'system',
+            'content': (
+                'You are a CISSP exam question generator. '
+                'Respond in JSON array format with objects containing '
+                'domain, question, option_a, option_b, option_c, option_d, '
+                'correct_option, and explanation.'
+            ),
+        },
+        {
+            'role': 'user',
+            'content': f'Create {count} questions about: {prompt}'
+        },
+    ]
+    resp = openai.chat.completions.create(model='gpt-3.5-turbo', messages=messages)
+    text = resp.choices[0].message.content
+    return json.loads(text)
     try:
         raw = zlib.decompress(base64.b64decode(blob))
         return json.loads(raw.decode())
@@ -49,6 +78,24 @@ def flashcards():
     question = cur.fetchone()
     conn.close()
     return render_template('flashcards.html', question=question)
+
+
+@app.route('/ai_exam', methods=['GET', 'POST'])
+def ai_exam():
+    if request.method == 'POST':
+        prompt = request.form['prompt']
+        num_q = int(request.form.get('num_questions', 5))
+        try:
+            questions = generate_ai_questions(prompt, num_q)
+        except Exception as e:
+            flash(f'Failed to generate questions: {e}')
+            return redirect(url_for('ai_exam'))
+        session['ai_questions'] = questions
+        session['current'] = 0
+        session['score'] = 0
+        return redirect(url_for('take_ai_exam'))
+    return render_template('ai_exam.html')
+
 
 
 @app.route('/exam', methods=['GET', 'POST'])
@@ -98,7 +145,9 @@ def take_exam():
     qid = question_ids[current]
     question = conn.execute('SELECT * FROM questions WHERE id=?', (qid,)).fetchone()
     conn.close()
-    return render_template('take_exam.html', question=question, current=current+1, total=len(question_ids))
+    return render_template('take_exam.html', question=question,
+                           current=current + 1, total=len(question_ids),
+                           action_url=url_for('answer_question'))
 
 
 @app.route('/answer_question', methods=['POST'])
@@ -159,6 +208,75 @@ def exam_result():
     question_ids = load_question_ids() or []
     session.pop('question_blob', None)
     total = len(question_ids)
+    return render_template('exam_result.html', score=score, total=total)
+
+
+@app.route('/take_ai_exam')
+def take_ai_exam():
+    questions = session.get('ai_questions')
+    current = session.get('current', 0)
+    if not questions or current >= len(questions):
+        flash('No active AI exam. Please start again.')
+        return redirect(url_for('ai_exam'))
+    question = questions[current]
+    return render_template('take_exam.html', question=question,
+                           current=current + 1, total=len(questions),
+                           action_url=url_for('answer_ai_question'))
+
+
+@app.route('/answer_ai_question', methods=['POST'])
+def answer_ai_question():
+    questions = session.get('ai_questions')
+    current = session.get('current', 0)
+    score = session.get('score', 0)
+    if not questions or current >= len(questions):
+        return redirect(url_for('ai_exam'))
+    selected = request.form.get('answer')
+    question = questions[current]
+    correct = selected == question['correct_option']
+    if correct:
+        score += 1
+    session['score'] = score
+    session['current'] = current + 1
+    session['last_question'] = question
+    session['last_selected'] = selected
+
+    done = session['current'] >= len(questions)
+    if done:
+        conn = get_db_connection()
+        conn.execute('INSERT INTO results (date, score, total) VALUES (?, ?, ?)',
+                     (datetime.utcnow(), score, len(questions)))
+        conn.commit()
+        conn.close()
+
+    return redirect(url_for('review_ai_question'))
+
+
+@app.route('/review_ai_question')
+def review_ai_question():
+    question = session.get('last_question')
+    selected = session.get('last_selected')
+    questions = session.get('ai_questions')
+    current = session.get('current', 0)
+
+    if question is None or questions is None:
+        return redirect(url_for('ai_exam'))
+
+    correct = selected == question['correct_option']
+    done = current >= len(questions)
+    next_url = url_for('ai_exam_result') if done else url_for('take_ai_exam')
+    return render_template('review_question.html', question=question,
+                           selected=selected, correct=correct,
+                           next_url=next_url, current=current,
+                           total=len(questions))
+
+
+@app.route('/ai_exam_result')
+def ai_exam_result():
+    score = session.get('score', 0)
+    questions = session.get('ai_questions') or []
+    session.pop('ai_questions', None)
+    total = len(questions)
     return render_template('exam_result.html', score=score, total=total)
 
 
