@@ -246,10 +246,10 @@ def answer_ai_question():
     current = session.get('current', 0)
     score = session.get('score', 0)
     if not questions or current >= len(questions):
-    selected = normalize_option(request.form.get('answer'))
-    question = questions[current]
-    correct_option = normalize_option(question['correct_option'])
-    correct = selected == correct_option
+        selected = normalize_option(request.form.get('answer'))
+        question = questions[current]
+        correct_option = normalize_option(question['correct_option'])
+        correct = selected == correct_option
     if correct:
         score += 1
     session['score'] = score
