@@ -9,12 +9,22 @@ This project provides a small Flask web application to help you practice for the
 - Choose which security domains to include when starting an exam
 - Add, edit, or delete questions
 - Track exam results over time
+- Generate practice exams with ChatGPT
 
-- Responsive layout works well on mobile devices
+2. Install dependencies:
+   pip install Flask openai python-dotenv
+4. Create a `.env` file and set your OpenAI API key:
+   ```bash
+   cp .env.example .env
+   # edit .env to add your key
+   ```
+5. (Optional) Import your questions from a JSON file:
+6. Run the application:
+7. Open your browser to `http://localhost:5000`.
 
-## Setup
+## AI Question Generation
 
-1. Create a Python environment (Python 3.8+ recommended).
+If you provide an OpenAI API key in `.env`, the **AI Exam** page lets you enter a prompt and automatically generate a short practice exam using ChatGPT. Questions are kept in memory and scored like regular exams.
 2. Install Flask:
    ```bash
    pip install Flask
