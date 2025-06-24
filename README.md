@@ -65,7 +65,7 @@ Each question should include a domain, text, four answer options, the correct op
 ## Notes
 
 This project is intended for personal study use. If you share questions or other content, ensure that you have the rights to do so.
-
 ## AI Question Generation
 
 If you provide an OpenAI API key in `.env`, the **AI Exam** page lets you enter a prompt and automatically generate a short practice exam using ChatGPT. Questions are kept in memory and scored like regular exams.
+
