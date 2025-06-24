@@ -9,6 +9,7 @@ This project provides a small Flask web application to help you practice for the
 - Choose which security domains to include when starting an exam
 - Add, edit, or delete questions
 - Track exam results over time
+
 - Responsive layout works well on mobile devices
 
 ## Setup
