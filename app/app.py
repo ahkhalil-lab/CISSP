@@ -35,7 +35,24 @@ def load_question_ids():
     blob = session.get('question_blob')
     if not blob:
         return None
+    try:
+        raw = zlib.decompress(base64.b64decode(blob))
+        return json.loads(raw.decode())
+    except Exception:
+        return None
 
+
+def normalize_option(value):
+    """Convert stored answer options to a single letter."""
+    if value is None:
+        return None
+    val = str(value).strip()
+    lower = val.lower()
+    if len(val) == 1 and val.upper() in "ABCD":
+        return val.upper()
+    if lower.startswith("option_") and lower[-1] in "abcd":
+        return lower[-1].upper()
+    return val.upper()
 
 def generate_ai_questions(prompt, count):
     """Call ChatGPT to generate a list of question dictionaries."""
@@ -59,11 +76,6 @@ def generate_ai_questions(prompt, count):
     resp = openai.chat.completions.create(model='gpt-3.5-turbo', messages=messages)
     text = resp.choices[0].message.content
     return json.loads(text)
-    try:
-        raw = zlib.decompress(base64.b64decode(blob))
-        return json.loads(raw.decode())
-    except Exception:
-        return None
 
 
 @app.route('/')
@@ -159,11 +171,12 @@ def answer_question():
     if not question_ids or current >= len(question_ids):
         return redirect(url_for('exam'))
 
-    selected = request.form.get('answer')
+    selected = normalize_option(request.form.get('answer'))
     conn = get_db_connection()
     qid = question_ids[current]
     question = conn.execute('SELECT * FROM questions WHERE id=?', (qid,)).fetchone()
-    correct = selected == question['correct_option']
+    correct_option = normalize_option(question['correct_option'])
+    correct = selected == correct_option
     if correct:
         score += 1
     session['score'] = score
@@ -194,12 +207,15 @@ def review_question():
     conn = get_db_connection()
     question = conn.execute('SELECT * FROM questions WHERE id=?', (qid,)).fetchone()
     conn.close()
-    correct = selected == question['correct_option']
+    correct_option = normalize_option(question['correct_option'])
+    correct = selected == correct_option
     done = current >= len(question_ids)
     next_url = url_for('exam_result') if done else url_for('take_exam')
-    return render_template('review_question.html', question=question, selected=selected,
-                           correct=correct, next_url=next_url,
-                           current=current, total=len(question_ids))
+    return render_template('review_question.html', question=question,
+                           selected=selected, correct=correct,
+                           correct_letter=correct_option,
+                           next_url=next_url, current=current,
+                           total=len(question_ids))
 
 
 @app.route('/exam_result')
@@ -231,9 +247,10 @@ def answer_ai_question():
     score = session.get('score', 0)
     if not questions or current >= len(questions):
         return redirect(url_for('ai_exam'))
-    selected = request.form.get('answer')
+    selected = normalize_option(request.form.get('answer'))
     question = questions[current]
-    correct = selected == question['correct_option']
+    correct_option = normalize_option(question['correct_option'])
+    correct = selected == correct_option
     if correct:
         score += 1
     session['score'] = score
@@ -262,11 +279,14 @@ def review_ai_question():
     if question is None or questions is None:
         return redirect(url_for('ai_exam'))
 
-    correct = selected == question['correct_option']
+    correct_option = normalize_option(question['correct_option'])
+    selected = normalize_option(selected)
+    correct = selected == correct_option
     done = current >= len(questions)
     next_url = url_for('ai_exam_result') if done else url_for('take_ai_exam')
     return render_template('review_question.html', question=question,
                            selected=selected, correct=correct,
+                           correct_letter=correct_option,
                            next_url=next_url, current=current,
                            total=len(questions))
 

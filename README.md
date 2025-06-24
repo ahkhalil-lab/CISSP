@@ -62,6 +62,8 @@ Each question should include a domain, text, four answer options, the correct op
 ]
 ```
 
+The `correct_option` should normally be the letter `A`, `B`, `C`, or `D`, but values like `option_a` are also recognized.
+
 ## Notes
 
 This project is intended for personal study use. If you share questions or other content, ensure that you have the rights to do so.
