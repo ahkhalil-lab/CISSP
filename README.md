@@ -10,6 +10,8 @@ This project provides a small Flask web application to help you practice for the
 - Add, edit, or delete questions
 - Track exam results over time
 
+- Responsive layout works well on mobile devices
+
 ## Setup
 
 1. Create a Python environment (Python 3.8+ recommended).
