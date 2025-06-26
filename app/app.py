@@ -175,10 +175,12 @@ def answer_question():
     conn = get_db_connection()
     qid = question_ids[current]
     question = conn.execute('SELECT * FROM questions WHERE id=?', (qid,)).fetchone()
-    correct_option = normalize_option(question['correct_option'])
-    correct = selected == correct_option
-    if correct:
-        score += 1
+    correct_option = normalize_option(question.get('correct_option'))
+    correct = False
+    if selected is not None and correct_option is not None:
+        correct = selected == correct_option
+        if correct:
+            score += 1
     session['score'] = score
     session['current'] = current + 1
     session['last_question_id'] = qid
@@ -207,8 +209,10 @@ def review_question():
     conn = get_db_connection()
     question = conn.execute('SELECT * FROM questions WHERE id=?', (qid,)).fetchone()
     conn.close()
-    correct_option = normalize_option(question['correct_option'])
-    correct = selected == correct_option
+    correct_option = normalize_option(question.get('correct_option'))
+    correct = False
+    if selected is not None and correct_option is not None:
+        correct = selected == correct_option
     done = current >= len(question_ids)
     next_url = url_for('exam_result') if done else url_for('take_exam')
     return render_template('review_question.html', question=question,
@@ -246,12 +250,15 @@ def answer_ai_question():
     current = session.get('current', 0)
     score = session.get('score', 0)
     if not questions or current >= len(questions):
-        selected = normalize_option(request.form.get('answer'))
-        question = questions[current]
-        correct_option = normalize_option(question['correct_option'])
+        return redirect(url_for('ai_exam'))
+    selected = normalize_option(request.form.get('answer'))
+    question = questions[current]
+    correct_option = normalize_option(question.get('correct_option'))
+    correct = False
+    if selected is not None and correct_option is not None:
         correct = selected == correct_option
-    if correct:
-        score += 1
+        if correct:
+            score += 1
     session['score'] = score
     session['current'] = current + 1
     session['last_question'] = question
@@ -278,9 +285,11 @@ def review_ai_question():
     if question is None or questions is None:
         return redirect(url_for('ai_exam'))
 
-    correct_option = normalize_option(question['correct_option'])
+    correct_option = normalize_option(question.get('correct_option'))
     selected = normalize_option(selected)
-    correct = selected == correct_option
+    correct = False
+    if selected is not None and correct_option is not None:
+        correct = selected == correct_option
     done = current >= len(questions)
     next_url = url_for('ai_exam_result') if done else url_for('take_ai_exam')
     return render_template('review_question.html', question=question,
