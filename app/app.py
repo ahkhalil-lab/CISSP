@@ -131,7 +131,6 @@ def exam():
         if num_q > available:
             flash(f'Only {available} questions available; starting exam with {available}.')
             num_q = available
-
         query = f'SELECT id FROM questions WHERE domain IN ({placeholders}) ORDER BY RANDOM() LIMIT ?'
         cur = conn.execute(query, (*selected_domains, num_q))
         question_ids = [row['id'] for row in cur.fetchall()]
@@ -317,7 +316,6 @@ def progress():
     conn.close()
     return render_template('progress.html', results=results)
 
-
 @app.route('/questions')
 def question_list():
     """Display all questions for editing or deletion."""
@@ -335,7 +333,6 @@ def delete_question(question_id):
     conn.commit()
     conn.close()
     return redirect(url_for('question_list'))
-
 
 @app.route('/question/new', methods=['GET', 'POST'])
 @app.route('/question/<int:question_id>', methods=['GET', 'POST'])
