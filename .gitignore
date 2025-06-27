@@ -1,0 +1,4 @@
+app/cissp.db
+__pycache__/
+*.pyc
+.env

@@ -1,0 +1,6 @@
+{% extends 'layout.html' %}
+{% block content %}
+<h2>Exam Completed</h2>
+<p>Your score: {{ score }} / {{ total }}</p>
+<a class="btn btn-primary" href="{{ url_for('exam') }}">Take Another Exam</a>
+{% endblock %}

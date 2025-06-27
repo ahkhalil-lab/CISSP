@@ -1,0 +1,14 @@
+{% extends 'layout.html' %}
+{% block content %}
+<h2>Exam Progress</h2>
+<table class="table">
+    <thead>
+        <tr><th>Date</th><th>Score</th></tr>
+    </thead>
+    <tbody>
+    {% for r in results %}
+        <tr><td>{{ r['date'] }}</td><td>{{ r['score'] }}/{{ r['total'] }}</td></tr>
+    {% endfor %}
+    </tbody>
+</table>
+{% endblock %}
