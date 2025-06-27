@@ -175,7 +175,7 @@ def answer_question():
     conn = get_db_connection()
     qid = question_ids[current]
     question = conn.execute('SELECT * FROM questions WHERE id=?', (qid,)).fetchone()
-    correct_option = normalize_option(question.get('correct_option'))
+    correct_option = normalize_option(question['correct_option'])
     correct = False
     if selected is not None and correct_option is not None:
         correct = selected == correct_option
@@ -209,7 +209,7 @@ def review_question():
     conn = get_db_connection()
     question = conn.execute('SELECT * FROM questions WHERE id=?', (qid,)).fetchone()
     conn.close()
-    correct_option = normalize_option(question.get('correct_option'))
+    correct_option = normalize_option(question['correct_option'])
     correct = False
     if selected is not None and correct_option is not None:
         correct = selected == correct_option
