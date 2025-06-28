@@ -135,6 +135,7 @@ def ai_exam():
     if saved and saved.get('mode') == 'ai':
         remaining = len(saved.get('questions', [])) - saved.get('current', 0)
         resume = {'remaining': remaining}
+
     if request.method == 'POST':
         prompt = request.form['prompt']
         num_q = int(request.form.get('num_questions', 5))
@@ -177,7 +178,6 @@ def exam():
         if num_q > available:
             flash(f'Only {available} questions available; starting exam with {available}.')
             num_q = available
-
         query = f'SELECT id FROM questions WHERE domain IN ({placeholders}) ORDER BY RANDOM() LIMIT ?'
         cur = conn.execute(query, (*selected_domains, num_q))
         question_ids = [row['id'] for row in cur.fetchall()]
@@ -242,6 +242,7 @@ def answer_question():
         conn.commit()
     save_exam_state({'mode': 'db', 'question_ids': question_ids,
                      'current': session['current'], 'score': score})
+
     conn.close()
 
     return redirect(url_for('review_question'))
@@ -307,7 +308,6 @@ def cancel_exam():
     session.pop('score', None)
     clear_exam_state()
     return redirect(url_for('index'))
-
 
 @app.route('/take_ai_exam')
 def take_ai_exam():
@@ -385,6 +385,7 @@ def ai_exam_result():
     questions = session.get('ai_questions') or []
     session.pop('ai_questions', None)
     clear_exam_state()
+
     total = len(questions)
     return render_template('exam_result.html', score=score, total=total)
 
@@ -396,7 +397,6 @@ def progress():
     results = cur.fetchall()
     conn.close()
     return render_template('progress.html', results=results)
-
 
 @app.route('/questions')
 def question_list():
@@ -415,7 +415,6 @@ def delete_question(question_id):
     conn.commit()
     conn.close()
     return redirect(url_for('question_list'))
-
 
 @app.route('/question/new', methods=['GET', 'POST'])
 @app.route('/question/<int:question_id>', methods=['GET', 'POST'])
