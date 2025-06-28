@@ -36,6 +36,11 @@ def load_question_ids():
     blob = session.get('question_blob')
     if not blob:
         return None
+    try:
+        raw = zlib.decompress(base64.b64decode(blob))
+        return json.loads(raw.decode())
+    except Exception:
+        return None
 
 
 def compress_data(data):
@@ -135,7 +140,6 @@ def ai_exam():
     if saved and saved.get('mode') == 'ai':
         remaining = len(saved.get('questions', [])) - saved.get('current', 0)
         resume = {'remaining': remaining}
-
     if request.method == 'POST':
         prompt = request.form['prompt']
         num_q = int(request.form.get('num_questions', 5))
@@ -242,7 +246,6 @@ def answer_question():
         conn.commit()
     save_exam_state({'mode': 'db', 'question_ids': question_ids,
                      'current': session['current'], 'score': score})
-
     conn.close()
 
     return redirect(url_for('review_question'))
@@ -385,7 +388,6 @@ def ai_exam_result():
     questions = session.get('ai_questions') or []
     session.pop('ai_questions', None)
     clear_exam_state()
-
     total = len(questions)
     return render_template('exam_result.html', score=score, total=total)
 
