@@ -36,11 +36,46 @@ def load_question_ids():
     blob = session.get('question_blob')
     if not blob:
         return None
+
+
+def compress_data(data):
+    """Compress a Python object into a base64 string."""
+    raw = json.dumps(data).encode()
+    return base64.b64encode(zlib.compress(raw)).decode()
+
+
+def decompress_data(blob):
+    """Decompress a base64 string into a Python object."""
     try:
         raw = zlib.decompress(base64.b64decode(blob))
         return json.loads(raw.decode())
     except Exception:
         return None
+
+
+def save_exam_state(data):
+    conn = get_db_connection()
+    blob = compress_data(data)
+    conn.execute('DELETE FROM exam_state')
+    conn.execute('INSERT INTO exam_state (id, data) VALUES (1, ?)', (blob,))
+    conn.commit()
+    conn.close()
+
+
+def load_exam_state():
+    conn = get_db_connection()
+    row = conn.execute('SELECT data FROM exam_state WHERE id=1').fetchone()
+    conn.close()
+    if row:
+        return decompress_data(row['data'])
+    return None
+
+
+def clear_exam_state():
+    conn = get_db_connection()
+    conn.execute('DELETE FROM exam_state')
+    conn.commit()
+    conn.close()
 
 
 def normalize_option(value):
@@ -95,6 +130,12 @@ def flashcards():
 
 @app.route('/ai_exam', methods=['GET', 'POST'])
 def ai_exam():
+    saved = load_exam_state()
+    resume = None
+    if saved and saved.get('mode') == 'ai':
+        remaining = len(saved.get('questions', [])) - saved.get('current', 0)
+        resume = {'remaining': remaining}
+
     if request.method == 'POST':
         prompt = request.form['prompt']
         num_q = int(request.form.get('num_questions', 5))
@@ -106,12 +147,18 @@ def ai_exam():
         session['ai_questions'] = questions
         session['current'] = 0
         session['score'] = 0
+        save_exam_state({'mode': 'ai', 'questions': questions, 'current': 0, 'score': 0})
         return redirect(url_for('take_ai_exam'))
-    return render_template('ai_exam.html')
+    return render_template('ai_exam.html', saved=resume)
 
 
 @app.route('/exam', methods=['GET', 'POST'])
 def exam():
+    saved = load_exam_state()
+    resume = None
+    if saved and saved.get('mode') == 'db':
+        remaining = len(saved.get('question_ids', [])) - saved.get('current', 0)
+        resume = {'remaining': remaining}
     conn = get_db_connection()
     cur = conn.execute('SELECT DISTINCT domain FROM questions ORDER BY domain')
     domains = [row['domain'] for row in cur.fetchall()]
@@ -139,9 +186,11 @@ def exam():
         store_question_ids(question_ids)
         session['current'] = 0
         session['score'] = 0
+        save_exam_state({'mode': 'db', 'question_ids': question_ids,
+                         'current': 0, 'score': 0})
         return redirect(url_for('take_exam'))
     conn.close()
-    return render_template('exam.html', domains=domains)
+    return render_template('exam.html', domains=domains, saved=resume)
 
 
 @app.route('/take_exam')
@@ -191,6 +240,9 @@ def answer_question():
         conn.execute('INSERT INTO results (date, score, total) VALUES (?, ?, ?)',
                      (datetime.utcnow(), score, len(question_ids)))
         conn.commit()
+    save_exam_state({'mode': 'db', 'question_ids': question_ids,
+                     'current': session['current'], 'score': score})
+
     conn.close()
 
     return redirect(url_for('review_question'))
@@ -227,9 +279,35 @@ def exam_result():
     score = session.get('score', 0)
     question_ids = load_question_ids() or []
     session.pop('question_blob', None)
+    clear_exam_state()
     total = len(question_ids)
     return render_template('exam_result.html', score=score, total=total)
 
+
+@app.route('/resume_exam')
+def resume_exam():
+    saved = load_exam_state()
+    if not saved:
+        return redirect(url_for('exam'))
+    session['current'] = saved.get('current', 0)
+    session['score'] = saved.get('score', 0)
+    if saved.get('mode') == 'db':
+        store_question_ids(saved.get('question_ids', []))
+        return redirect(url_for('take_exam'))
+    elif saved.get('mode') == 'ai':
+        session['ai_questions'] = saved.get('questions', [])
+        return redirect(url_for('take_ai_exam'))
+    return redirect(url_for('exam'))
+
+
+@app.route('/cancel_exam')
+def cancel_exam():
+    session.pop('question_blob', None)
+    session.pop('ai_questions', None)
+    session.pop('current', None)
+    session.pop('score', None)
+    clear_exam_state()
+    return redirect(url_for('index'))
 
 @app.route('/take_ai_exam')
 def take_ai_exam():
@@ -271,6 +349,8 @@ def answer_ai_question():
                      (datetime.utcnow(), score, len(questions)))
         conn.commit()
         conn.close()
+    save_exam_state({'mode': 'ai', 'questions': questions,
+                     'current': session['current'], 'score': score})
 
     return redirect(url_for('review_ai_question'))
 
@@ -304,6 +384,8 @@ def ai_exam_result():
     score = session.get('score', 0)
     questions = session.get('ai_questions') or []
     session.pop('ai_questions', None)
+    clear_exam_state()
+
     total = len(questions)
     return render_template('exam_result.html', score=score, total=total)
 

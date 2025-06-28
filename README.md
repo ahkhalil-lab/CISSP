@@ -11,6 +11,7 @@ This project provides a small Flask web application to help you practice for the
 - Track exam results over time
 - Responsive layout works well on mobile devices
 - Generate practice exams with ChatGPT
+- Resume a saved exam if you close the browser
 
 ## Setup
 
@@ -44,7 +45,7 @@ This project provides a small Flask web application to help you practice for the
 
 Once running, use the **Questions** link in the navigation bar to view all questions.
 From there you can edit or delete entries.
-During an exam you select how many questions to attempt and which domains to draw from. The application now compresses the question list so you can practice hundreds of questions in one sitting. If the selected domains contain fewer questions than requested, the exam automatically uses all available questions. After each answer you will immediately see whether you were correct along with the explanation before moving on.
+During an exam you select how many questions to attempt and which domains to draw from. The application now compresses the question list so you can practice hundreds of questions in one sitting. If the selected domains contain fewer questions than requested, the exam automatically uses all available questions. After each answer you will immediately see whether you were correct along with the explanation before moving on. If you close your browser in the middle of an exam, just return to the exam page to resume or cancel the saved session.
 
 ## Question JSON Format
 

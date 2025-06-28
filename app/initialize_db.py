@@ -22,6 +22,11 @@ CREATE TABLE IF NOT EXISTS results (
     score INTEGER NOT NULL,
     total INTEGER NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS exam_state (
+    id INTEGER PRIMARY KEY CHECK (id = 1),
+    data TEXT NOT NULL
+);
 '''
 
 conn = sqlite3.connect(DB_PATH)
